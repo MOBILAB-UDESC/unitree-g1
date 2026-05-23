@@ -1,0 +1,11 @@
+[project]
+name = "unitreeg1"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cyclonedds==0.10.2",
+    "numpy==2.2.6",
+    "opencv-python>=4.13.0.92",
+]
