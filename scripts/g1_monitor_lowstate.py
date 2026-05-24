@@ -19,7 +19,7 @@ def handler(msg: LowState_):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: uv run python scripts/read_g1_state.py <iface>")
+        print("Usage: uv run python scripts/g1_monitor_lowstate.py <iface>")
         raise SystemExit(2)
 
     iface = sys.argv[1]
