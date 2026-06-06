@@ -19,6 +19,80 @@ Run a quick import check:
 uv run python -c "import cyclonedds, numpy, cv2, unitree_sdk2py; print('ok')"
 ```
 
+## XR Teleoperate Conda Setup
+
+Use a conda environment for `xr_teleoperate`. The arm IK code requires Pinocchio's CasADi bindings via `from pinocchio import casadi as cpin`; the PyPI wheels used by `uv` do not provide that binding reliably. The conda-forge Pinocchio package does.
+
+Install Miniforge if `conda` is not available:
+
+```bash
+curl -L -o /tmp/Miniforge3-Linux-x86_64.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+bash /tmp/Miniforge3-Linux-x86_64.sh -b -p "$HOME/miniforge3"
+```
+
+Create the XR environment:
+
+```bash
+$HOME/miniforge3/bin/conda create -y -n tv python=3.10 pinocchio=3.1.0 numpy=1.26.4 casadi -c conda-forge
+```
+
+Install the local SDK and XR packages into the `tv` environment:
+
+```bash
+$HOME/miniforge3/bin/conda run -n tv python -m pip install -e packages/unitree_sdk2_python -e packages/xr_teleoperate/teleop/teleimager --no-deps
+$HOME/miniforge3/bin/conda run -n tv python -m pip install cyclonedds==0.10.2 opencv-python==4.11.0.86
+$HOME/miniforge3/bin/conda run -n tv python -m pip install -e packages/xr_teleoperate/teleop/televuer -e packages/xr_teleoperate/teleop/robot_control/dex-retargeting -r packages/xr_teleoperate/requirements.txt "params-proto==2.13.0" pyyaml pyzmq logging_mp
+```
+
+Verify the environment:
+
+```bash
+$HOME/miniforge3/bin/conda run -n tv python -c "import numpy, cv2, casadi, pinocchio; from pinocchio import casadi as cpin; import unitree_sdk2py, televuer, teleimager, dex_retargeting; print('xr teleop env ok')"
+$HOME/miniforge3/bin/conda run -n tv python -m pip check
+```
+
+The vendored `packages/unitree_sdk2_python` checkout must be at commit `404fe44d76f705c002c97e773276f2a8fefb57e4` or newer for `xr_teleoperate` v1.1 and newer. Check it with:
+
+```bash
+git -C packages/unitree_sdk2_python merge-base --is-ancestor 404fe44d76f705c002c97e773276f2a8fefb57e4 HEAD
+```
+
+No output means the requirement is satisfied.
+
+### Quest 3 Certificates
+
+For Quest 3, generate a self-signed certificate for `televuer` and copy it into the shared config directory:
+
+```bash
+cd packages/xr_teleoperate/teleop/televuer
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem -subj "/CN=quest3-xr-teleoperate"
+mkdir -p ~/.config/xr_teleoperate/
+cp cert.pem key.pem ~/.config/xr_teleoperate/
+```
+
+Allow the `televuer` HTTPS/WebSocket port if the firewall is enabled:
+
+```bash
+sudo ufw allow 8012
+```
+
+### Run XR Teleoperate
+
+Run `teleop_hand_and_arm.py` from `packages/xr_teleoperate/teleop`; several asset paths are relative to that directory. The script uses `--input-mode`, not `--xr-mode`.
+
+```bash
+cd packages/xr_teleoperate/teleop
+$HOME/miniforge3/bin/conda run -n tv python teleop_hand_and_arm.py --input-mode=hand --arm=G1_29 --ee=dex3 --record
+```
+
+For non-interactive shells or automated checks, add `--ipc` to avoid the keyboard listener requiring a TTY:
+
+```bash
+$HOME/miniforge3/bin/conda run -n tv python teleop_hand_and_arm.py --input-mode=hand --arm=G1_29 --ee=dex3 --record --ipc
+```
+
+If the image server is not running, the script may log a timeout for `192.168.123.164:60000` and fall back to the local teleimager camera config.
+
 ## Find The Robot Network Interface
 
 Most commands need the network interface connected to the robot. In these examples that value is `enp194s0`, but it is machine-specific.
