@@ -1,3 +1,6 @@
 [submodule "packages/unitree_sdk2_python"]
 	path = packages/unitree_sdk2_python
 	url = git@github.com:unitreerobotics/unitree_sdk2_python.git
+[submodule "packages/xr_teleoperate"]
+	path = packages/xr_teleoperate
+	url = https://github.com/unitreerobotics/xr_teleoperate.git
